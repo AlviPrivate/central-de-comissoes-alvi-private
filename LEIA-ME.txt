@@ -1,0 +1,11 @@
+CENTRAL DE COMISSOES ALVI PRIVATE
+
+1. Abra o arquivo index.html no Google Chrome ou Microsoft Edge.
+2. Na pagina Locacao, informe o valor da vistoria em cada calculo.
+3. Selecione Administracao Normal ou Administracao Nova.
+4. Clique em Calcular comissao.
+5. Use Gerar PDF para abrir o extrato. Na tela de impressao, escolha Salvar como PDF.
+6. Os calculos e configuracoes ficam salvos no navegador.
+7. Use Exportar backup para guardar uma copia dos dados.
+
+Observacao: para a janela do PDF abrir, o navegador deve permitir pop-ups para o arquivo.
