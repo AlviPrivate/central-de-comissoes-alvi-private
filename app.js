@@ -105,14 +105,16 @@ function calculateRent() {
   const admin = gross * adminRate / 100;
   const beforeDoor = Math.max(0, gross - inspection - documents - admin);
   const door = beforeDoor * s.doorNet / 100;
-  const net = Math.max(0, beforeDoor - door);
-  const adminDistributionRate = adminType === 'new' ? s.newAdmin : 0;
+  const netBeforeNewAdmin = Math.max(0, beforeDoor - door);
+  // A ADM Nova é um desconto adicional, e não um participante da distribuição.
+  const newAdminRate = adminType === 'new' ? s.newAdmin : 0;
+  const newAdmin = netBeforeNewAdmin * newAdminRate / 100;
+  const net = Math.max(0, netBeforeNewAdmin - newAdmin);
   const relocationName = $('rentRelocation').value.trim();
   const relocationRate = relocationName ? s.relocation : 0;
   const parts = [
     ['Captador do imóvel', net * s.captor / 100, pct(s.captor), $('rentCaptor').value],
     ['Responsável pela relocação', net * relocationRate / 100, pct(relocationRate), relocationName],
-    ['ADM Nova', net * adminDistributionRate / 100, pct(adminDistributionRate), $('rentAdminResponsible').value],
     ['Corretor', net * s.broker / 100, pct(s.broker), $('rentBroker').value],
     ['Gerente', net * s.manager / 100, pct(s.manager), $('rentManager').value],
     ['Adicional 1', net * s.extra1 / 100, pct(s.extra1), ''],
@@ -128,9 +130,9 @@ function calculateRent() {
     address: $('rentAddress').value || 'Imóvel sem endereço', number: $('rentNumber').value,
     complement: $('rentComplement').value, propertyReference: $('rentReference').value, owner: $('rentOwner').value,
     tenant: $('rentTenant').value, broker: $('rentBroker').value, gross, inspection, documents,
-    admin, adminRate, adminType, beforeDoor, door, net, parts, alvi, guarantee: $('rentGuarantee').value,
+    admin, adminRate, adminType, newAdmin, newAdminRate, beforeDoor, door, net, parts, alvi, guarantee: $('rentGuarantee').value,
     date: $('rentDate').value, captor: $('rentCaptor').value, manager: $('rentManager').value,
-    relocation: $('rentRelocation').value, adminResponsible: $('rentAdminResponsible').value,
+    relocation: $('rentRelocation').value,
     status: $('rentStatus').value, notes: $('rentNotes').value, paymentDate: $('rentPaymentDate').value, paidAmount: num($('rentPaidAmount').value)
   };
 
@@ -140,10 +142,10 @@ function calculateRent() {
     line('LAUDO DE VISTORIA', -inspection, 'Valor informado no cálculo') +
     line('Documentos', -documents, 'Valor fixo') +
     line('ADM FIXA', -admin, `${pct(adminRate)} sobre o valor bruto · aplicada sempre`) +
-    line('ADM NOVA', adminType === 'new' ? net * s.newAdmin / 100 : 0, adminType === 'new' ? `${pct(s.newAdmin)} do líquido · distribuição` : 'Não aplicada') +
     line('VALOR LÍQUIDO SEM PORTARIA', beforeDoor) +
     line('PORTARIA', -door, `${pct(s.doorNet)} · sobre o líquido sem portaria`) +
-    line('VALOR LÍQUIDO', net) +
+    line('VALOR LÍQUIDO', netBeforeNewAdmin) +
+    (adminType === 'new' ? line('ADM NOVA', -newAdmin, `${pct(newAdminRate)} sobre o valor líquido`) : '') +
     parts.filter(p => p[1] !== 0).map(p => line(p[0], p[1], `${p[2]}${p[3] ? ` · ${p[3]}` : ''}`)).join('');
   const rentDistributed = parts.reduce((a, p) => a + p[1], 0);
   $('rentDistributed').textContent = money(rentDistributed);
@@ -353,7 +355,7 @@ window.editHistory = id => {
   const x = history.find(i => i.id === id); if (!x) return;
   editingId = id;
   if (x.type === 'locacao') {
-    fillField('rentAddress',x.address); fillField('rentNumber',x.number); fillField('rentComplement',x.complement); fillField('rentReference',referenceText(x)); fillField('rentOwner',x.owner); fillField('rentTenant',x.tenant); fillField('rentGross',String(x.gross||'').replace('.',',')); fillField('rentInspection',String(x.inspection||'').replace('.',',')); fillField('rentGuarantee',x.guarantee); fillField('rentDate',x.date); fillField('rentStatus',x.status||'em_analise'); fillField('rentNotes',x.notes); fillField('rentPaymentDate',x.paymentDate); fillField('rentPaidAmount',String(x.paidAmount||0).replace('.',',')); fillField('rentCaptor',x.captor); fillField('rentAdminResponsible',x.adminResponsible); fillField('rentBroker',x.broker); fillField('rentManager',x.manager); fillField('rentRelocation',x.relocation); const savedAdminType = x.adminType === 'alvi' ? 'none' : (x.adminType || 'none'); const radio=document.querySelector(`input[name="rentAdminType"][value="${savedAdminType}"]`); if(radio) radio.checked=true; calculateRent(); $('saveRent').textContent='Atualizar registro'; navigate('locacao');
+    fillField('rentAddress',x.address); fillField('rentNumber',x.number); fillField('rentComplement',x.complement); fillField('rentReference',referenceText(x)); fillField('rentOwner',x.owner); fillField('rentTenant',x.tenant); fillField('rentGross',String(x.gross||'').replace('.',',')); fillField('rentInspection',String(x.inspection||'').replace('.',',')); fillField('rentGuarantee',x.guarantee); fillField('rentDate',x.date); fillField('rentStatus',x.status||'em_analise'); fillField('rentNotes',x.notes); fillField('rentPaymentDate',x.paymentDate); fillField('rentPaidAmount',String(x.paidAmount||0).replace('.',',')); fillField('rentCaptor',x.captor); fillField('rentBroker',x.broker); fillField('rentManager',x.manager); fillField('rentRelocation',x.relocation); const savedAdminType = x.adminType === 'alvi' ? 'none' : (x.adminType || 'none'); const radio=document.querySelector(`input[name="rentAdminType"][value="${savedAdminType}"]`); if(radio) radio.checked=true; calculateRent(); $('saveRent').textContent='Atualizar registro'; navigate('locacao');
   } else {
     fillField('saleAddress',x.address); fillField('saleNumber',x.number); fillField('saleComplement',x.complement); fillField('salePropertyReference',referenceText(x)); fillField('saleOwner',x.owner); fillField('saleBuyer',x.buyer); fillField('saleValue',String(x.grossCommission||x.value||'').replace('.',',')); fillField('saleDate',x.date); fillField('saleStatus',x.status||'em_analise'); fillField('saleNotes',x.notes); fillField('salePaymentDate',x.paymentDate); fillField('salePaidAmount',String(x.paidAmount||0).replace('.',',')); fillField('saleTaxRate',String(x.taxRate||0).replace('.',',')); fillField('saleDocuments',String(x.documents||0).replace('.',',')); fillField('saleAdminRate',String(x.adminRate||0).replace('.',',')); fillField('saleDoorRate',String(x.doorRate||0).replace('.',',')); fillField('saleCaptor',x.captor); fillField('saleBroker',x.broker); fillField('saleManager',x.manager); fillField('saleLegal',x.legal); calculateSale(); $('saveSale').textContent='Atualizar registro'; navigate('venda');
   }
@@ -376,7 +378,7 @@ const rentDefs = [
   ['doorNet','Portaria','Sobre o líquido antes da portaria','%'],
   ['captor','Captador do imóvel','Distribuição do líquido','%'],
   ['relocation','Responsável pela relocação','Calculado somente quando houver um nome informado','%'],
-  ['newAdmin','ADM Nova','Distribuição do líquido aplicada somente quando ADM Nova estiver selecionada','%'],
+  ['newAdmin','ADM Nova','Desconto adicional sobre o líquido após a portaria, aplicado somente quando ADM Nova estiver selecionada','%'],
   ['broker','Corretor','Distribuição do líquido','%'],
   ['manager','Gerente','Distribuição do líquido','%'],
   ['extra1','Adicional 1','Distribuição opcional','%'],
