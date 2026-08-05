@@ -45,6 +45,14 @@
         <article class="stat-card reveal"><span>Volume em vendas</span><strong id="statSale">R$ 0,00</strong><small>Valores dos imóveis registrados</small></article>
         <article class="stat-card reveal"><span>Receita Alvi estimada</span><strong id="statAlvi">R$ 0,00</strong><small>Somatório dos cálculos</small></article>
       </div>
+      <article class="panel reveal monthly-panel">
+        <div class="panel-head monthly-head">
+          <div><p class="eyebrow">FECHAMENTO MENSAL</p><h3>Comissões separadas por mês</h3><small>Escolha um mês para visualizar somente as comissões daquele período.</small></div>
+          <div class="monthly-actions"><select id="dashboardMonth" aria-label="Selecionar mês"></select><button class="btn gold" id="pdfMonthly" type="button">Gerar PDF do mês</button></div>
+        </div>
+        <div class="month-summary" id="monthSummary"></div>
+        <div class="month-commissions" id="monthCommissions"></div>
+      </article>
       <div class="dashboard-grid">
         <article class="panel reveal"><div class="panel-head"><div><p class="eyebrow">ATALHOS</p><h3>Comece um cálculo</h3></div></div><div class="shortcut-grid"><button class="shortcut" data-go="locacao"><span class="shortcut-icon">⌂</span><div><strong>Nova locação</strong><small>Repasse do primeiro aluguel</small></div><b>→</b></button><button class="shortcut" data-go="venda"><span class="shortcut-icon">◇</span><div><strong>Nova venda</strong><small>Comissão sobre o valor do imóvel</small></div><b>→</b></button></div></article>
         <article class="panel reveal"><div class="panel-head"><div><p class="eyebrow">ÚLTIMOS REGISTROS</p><h3>Atividade recente</h3></div><button class="link-btn" data-go="historico">Ver todos</button></div><div id="recentList" class="recent-list empty-state">Nenhum cálculo salvo ainda.</div></article>

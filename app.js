@@ -339,7 +339,7 @@ function generatePdf(item) {
   const deductions = isRent ? `<section><h2>Descontos</h2><table><tbody><tr><td>Laudo de vistoria</td><td>${money(item.inspection)}</td></tr><tr><td>Administração</td><td>${money(item.admin)}</td></tr><tr><td>Valor líquido sem portaria</td><td>${money(item.beforeDoor ?? (item.gross - item.inspection - item.documents - item.admin))}</td></tr><tr><td>Portaria</td><td>${money(item.door)}</td></tr></tbody></table></section>` : `<section><h2>Descontos</h2><table><tbody><tr><td>Custo nota fiscal</td><td>${pct(item.taxRate || 0)}</td><td>${money(item.tax || 0)}</td></tr><tr><td>Documentos / despachante</td><td>Valor</td><td>${money(item.documents || 0)}</td></tr><tr><td>Administração</td><td>${pct(item.adminRate || 0)}</td><td>${money(item.admin || 0)}</td></tr><tr><td>Portaria</td><td>${pct(item.doorRate || 0)}</td><td>${money(item.door || 0)}</td></tr></tbody></table></section>`;
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>${title}</title><style>
     @page{size:A4 landscape;margin:7mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#211e1a;margin:0;background:#fff}.head{border-bottom:3px solid #c99b52;padding-bottom:6px;margin-bottom:7px;display:flex;justify-content:space-between;align-items:flex-end}.brand{font-weight:800;letter-spacing:2px}.brand small{display:block;font-weight:400;letter-spacing:0;color:#777;margin-top:2px}.date{font-size:14px;color:#777}h1{font-family:Georgia,serif;font-size:32px;margin:0 0 2px}h2{font-size:16px;text-transform:uppercase;letter-spacing:1.3px;margin:7px 0 4px;color:#9a6c27}.address{font-size:16px;color:#555;margin-bottom:5px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px 16px;background:#f7f3ec;padding:7px 12px;border-radius:9px}.grid div{border-bottom:1px solid #e4ddd3;padding:3px 0}.grid span{display:block;font-size:11px;text-transform:uppercase;color:#888;margin-bottom:1px}.grid strong{font-size:15px}.report-columns{display:grid;grid-template-columns:.88fr 1.12fr;gap:15px;align-items:start}section{break-inside:avoid}table{width:100%;border-collapse:collapse}th,td{padding:6px 7px;border-bottom:1px solid #e7e1d8;text-align:left;font-size:14px}th{text-transform:uppercase;font-size:11px;color:#777}td:last-child,th:last-child{text-align:right}td small{display:block;color:#888;margin-top:1px}.total{margin-top:6px;background:#1b1814;color:#fff;padding:9px 12px;border-radius:8px;display:flex;justify-content:space-between;font-size:16px}.total strong{color:#d9ad65}.boss-notes{margin-top:5px;break-inside:auto;page-break-inside:auto}.boss-notes h2{margin:4px 0 2px}.note-line{height:18px;border-bottom:1px solid #777;margin-bottom:3px}.footer{margin-top:5px;padding-top:4px;border-top:1px solid #ddd;font-size:11px;color:#888;text-align:center}.no-print{margin:10px auto;display:block;padding:9px 16px;background:#c99b52;border:0;border-radius:8px;font-weight:bold;cursor:pointer}@media print{.no-print{display:none}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.boss-notes{break-before:avoid-page;page-break-before:avoid}}
-  </style></head><body><button class="no-print" onclick="window.print()">Salvar como PDF / Imprimir</button><div class="head"><div><div class="brand">ALVI PRIVATE<small>Inteligência Imobiliária</small></div></div><div class="date">Emitido em ${new Date().toLocaleString('pt-BR')}</div></div><h1>${title}</h1><div class="address">${esc(addressText(item))}${referenceText(item) ? `<br>Ref.: ${esc(referenceText(item))}` : ''}</div><section><h2>Dados da operação</h2><div class="grid">${details}</div></section><div class="report-columns"><div>${deductions}</div><section><h2>Distribuição da comissão</h2><table><thead><tr><th>Participante</th><th>Regra</th><th>Valor</th></tr></thead><tbody>${printableRows(item.parts, isRent ? item.net : item.total)}</tbody></table></section></div><div class="total"><span>${isRent ? 'Valor líquido distribuível' : 'Comissão total'}</span><strong>${money(isRent ? item.net : item.total)}</strong></div><section class="boss-notes"><h2>Observações da chefia</h2><div class="note-line"></div><div class="note-line"></div></section><div class="footer">Documento gerado pela Central de Comissões Alvi Private.</div><script>setTimeout(()=>window.print(),400)<\/script></body></html>`;
+  </style></head><body><button class="no-print" onclick="window.print()">Salvar como PDF / Imprimir</button><div class="head"><div><div class="brand">ALVI PRIVATE<small>Inteligência Imobiliária</small></div></div><div class="date">Emitido em ${new Date().toLocaleString('pt-BR')}</div></div><h1>${title}</h1><div class="address">${esc(addressText(item))}${referenceText(item) ? `<br>Ref.: ${esc(referenceText(item))}` : ''}</div><section><h2>Dados da operação</h2><div class="grid">${details}</div></section><div class="report-columns"><div>${deductions}</div><section><h2>Distribuição da comissão</h2><table><thead><tr><th>Participante</th><th>Regra</th><th>Valor</th></tr></thead><tbody>${printableRows(item.parts, isRent ? item.net : item.total)}</tbody></table></section></div><div class="total"><span>${isRent ? 'Valor líquido distribuível' : 'Comissão total'}</span><strong>${money(isRent ? item.net : item.total)}</strong></div><section class="boss-notes"><h2>Observações</h2><div class="note-line"></div><div class="note-line"></div></section><div class="footer">Documento gerado pela Central de Comissões Alvi Private.</div><script>setTimeout(()=>window.print(),400)<\/script></body></html>`;
   const win = window.open('', '_blank');
   if (!win) return toast('Permita pop-ups para gerar o PDF.');
   win.document.open(); win.document.write(html); win.document.close();
@@ -369,14 +369,74 @@ $('saveSale').onclick = () => save(lastSale);
 $('duplicateRent').onclick = () => { if (!lastRent) return toast('Faça o cálculo primeiro.'); editingId = null; $('saveRent').textContent='Salvar cópia'; toast('Cópia preparada. Altere os dados e salve.'); };
 $('duplicateSale').onclick = () => { if (!lastSale) return toast('Faça o cálculo primeiro.'); editingId = null; $('saveSale').textContent='Salvar cópia'; toast('Cópia preparada. Altere os dados e salve.'); };
 
+function itemMonthKey(item) {
+  const raw = item.date || item.createdAt || new Date().toISOString();
+  const d = new Date(raw.length === 10 ? raw + 'T12:00:00' : raw);
+  return Number.isNaN(d.getTime()) ? new Date().toISOString().slice(0,7) : `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function monthLabel(key) {
+  const [y,m] = key.split('-').map(Number);
+  return new Date(y,m-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}).replace(/^./,c=>c.toUpperCase());
+}
+function itemGross(item) { return Number(item.type === 'locacao' ? item.gross : (item.grossCommission || item.value || item.total) || 0); }
+function monthItems(key) { return history.filter(item => itemMonthKey(item) === key); }
+function availableMonths() {
+  const current = new Date().toISOString().slice(0,7);
+  return [...new Set([current, ...history.map(itemMonthKey)])].sort().reverse();
+}
+function renderMonthlyDashboard() {
+  const select = $('dashboardMonth');
+  if (!select) return;
+  const previous = select.value;
+  const months = availableMonths();
+  select.innerHTML = months.map(key => `<option value="${key}">${monthLabel(key)}</option>`).join('');
+  select.value = months.includes(previous) ? previous : months[0];
+  const key = select.value;
+  const items = monthItems(key);
+  const active = items.filter(x => (x.status || 'em_analise') !== 'cancelada');
+  const rent = active.filter(x => x.type === 'locacao');
+  const sale = active.filter(x => x.type === 'venda');
+  const paid = active.filter(x => x.status === 'paga');
+  const gross = active.reduce((sum,x) => sum + itemGross(x),0);
+  const alvi = active.reduce((sum,x) => sum + Number(x.alvi || 0),0);
+  $('monthSummary').innerHTML = `
+    <div><span>Comissões</span><strong>${active.length}</strong></div>
+    <div><span>Locações</span><strong>${rent.length}</strong></div>
+    <div><span>Vendas</span><strong>${sale.length}</strong></div>
+    <div><span>Pagas</span><strong>${paid.length}</strong></div>
+    <div><span>Volume bruto</span><strong>${money(gross)}</strong></div>
+    <div><span>Receita Alvi</span><strong>${money(alvi)}</strong></div>`;
+  const box = $('monthCommissions');
+  box.classList.toggle('empty-state', !items.length);
+  box.innerHTML = items.length ? items.map(x => `<div class="month-row"><span class="type-badge ${x.type}">${x.type === 'locacao' ? 'LOCAÇÃO' : 'VENDA'}</span><div><strong>${esc(addressText(x))}</strong><small>${esc(x.owner || x.buyer || x.tenant || 'Sem cliente informado')} · ${statusLabels[x.status || 'em_analise']}</small></div><div><strong>${money(itemGross(x))}</strong><small>Prevista: ${x.date ? new Date(x.date+'T12:00:00').toLocaleDateString('pt-BR') : '-'}</small></div></div>`).join('') : `Nenhuma comissão em ${monthLabel(key)}.`;
+}
 function renderDashboard() {
   $('statCount').textContent = history.length;
   $('statRent').textContent = money(history.filter(x => x.type === 'locacao').reduce((a, x) => a + x.gross, 0));
-  $('statSale').textContent = money(history.filter(x => x.type === 'venda').reduce((a, x) => a + x.value, 0));
+  $('statSale').textContent = money(history.filter(x => x.type === 'venda').reduce((a, x) => a + Number(x.grossCommission || x.value || 0), 0));
   $('statAlvi').textContent = money(history.reduce((a, x) => a + (x.alvi || 0), 0));
+  renderMonthlyDashboard();
   const recent = history.slice(0, 4);
   $('recentList').classList.toggle('empty-state', !recent.length);
   $('recentList').innerHTML = recent.length ? recent.map(x => `<div class="recent-item"><div><strong>${esc(addressText(x))}</strong><small>${x.type === 'locacao' ? 'Locação' : 'Venda'} · ${new Date(x.createdAt).toLocaleDateString('pt-BR')}</small></div><strong>${money(x.type === 'locacao' ? x.gross : x.total)}</strong></div>`).join('') : 'Nenhum cálculo salvo ainda.';
+}
+
+function generateMonthlyPdf(key) {
+  const items = monthItems(key);
+  if (!items.length) return toast('Não há comissões nesse mês.');
+  const active = items.filter(x => (x.status || 'em_analise') !== 'cancelada');
+  const rent = active.filter(x => x.type === 'locacao');
+  const sale = active.filter(x => x.type === 'venda');
+  const paid = active.filter(x => x.status === 'paga');
+  const partial = active.filter(x => x.status === 'paga_parcialmente');
+  const pending = active.filter(x => !['paga','cancelada'].includes(x.status || 'em_analise'));
+  const gross = active.reduce((sum,x)=>sum+itemGross(x),0);
+  const alvi = active.reduce((sum,x)=>sum+Number(x.alvi||0),0);
+  const rows = items.map(x => `<tr><td>${x.type === 'locacao' ? 'Locação' : 'Venda'}</td><td>${esc(addressText(x))}</td><td>${esc(x.owner || x.buyer || x.tenant || '-')}</td><td>${esc(statusLabels[x.status || 'em_analise'])}</td><td>${x.date ? new Date(x.date+'T12:00:00').toLocaleDateString('pt-BR') : '-'}</td><td>${money(itemGross(x))}</td><td>${money(x.alvi || 0)}</td></tr>`).join('');
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Fechamento mensal - ${monthLabel(key)}</title><style>@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#211e1a;margin:0}.head{display:flex;justify-content:space-between;border-bottom:3px solid #c99b52;padding-bottom:10px}.brand{font-weight:800;letter-spacing:2px}.brand small{display:block;font-weight:400;letter-spacing:0;color:#777}.date{color:#777}h1{font-family:Georgia,serif;font-size:30px;margin:16px 0 3px}h2{font-size:14px;color:#9a6c27;text-transform:uppercase;letter-spacing:1px}.summary{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:14px 0}.summary div{background:#f7f3ec;border-radius:8px;padding:9px}.summary span{display:block;font-size:10px;color:#777;text-transform:uppercase}.summary strong{font-size:17px}table{width:100%;border-collapse:collapse}th,td{padding:7px;border-bottom:1px solid #ddd;text-align:left;font-size:12px}th{font-size:10px;text-transform:uppercase;color:#777}td:nth-last-child(-n+2),th:nth-last-child(-n+2){text-align:right}.total{margin-top:10px;background:#1b1814;color:#fff;border-radius:8px;padding:12px;display:flex;justify-content:space-between}.total strong{color:#d9ad65}.boss-notes{margin-top:12px}.note-line{height:24px;border-bottom:1px solid #777}.footer{text-align:center;color:#888;font-size:10px;margin-top:10px}.no-print{margin:8px auto;display:block;padding:9px 16px;border:0;border-radius:8px;background:#c99b52;font-weight:bold}@media print{.no-print{display:none}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><button class="no-print" onclick="window.print()">Salvar como PDF / Imprimir</button><div class="head"><div class="brand">ALVI PRIVATE<small>Inteligência Imobiliária</small></div><div class="date">Emitido em ${new Date().toLocaleString('pt-BR')}</div></div><h1>Fechamento mensal — ${monthLabel(key)}</h1><p>Resumo das comissões registradas para o período.</p><div class="summary"><div><span>Comissões</span><strong>${active.length}</strong></div><div><span>Locações</span><strong>${rent.length}</strong></div><div><span>Vendas</span><strong>${sale.length}</strong></div><div><span>Pagas</span><strong>${paid.length}</strong></div><div><span>Parciais</span><strong>${partial.length}</strong></div><div><span>Pendentes</span><strong>${pending.length}</strong></div></div><h2>Comissões do mês</h2><table><thead><tr><th>Tipo</th><th>Imóvel</th><th>Cliente</th><th>Status</th><th>Data prevista</th><th>Valor bruto</th><th>Receita Alvi</th></tr></thead><tbody>${rows}</tbody></table><div class="total"><span>Volume bruto do mês: <strong>${money(gross)}</strong></span><span>Receita Alvi: <strong>${money(alvi)}</strong></span></div><section class="boss-notes"><h2>Observações</h2><div class="note-line"></div><div class="note-line"></div></section><div class="footer">Documento gerado pela Central de Comissões Alvi Private.</div><script>setTimeout(()=>window.print(),400)<\/script></body></html>`;
+  const win = window.open('', '_blank');
+  if (!win) return toast('Permita pop-ups para gerar o PDF.');
+  win.document.open(); win.document.write(html); win.document.close();
 }
 
 function openConfirm({title, message, summary='', acceptLabel='Confirmar'}) {
@@ -537,3 +597,6 @@ setInitialValues();
 calculateRent();
 calculateSale();
 renderDashboard();
+
+if ($('dashboardMonth')) $('dashboardMonth').onchange = renderMonthlyDashboard;
+if ($('pdfMonthly')) $('pdfMonthly').onclick = () => generateMonthlyPdf($('dashboardMonth').value);
