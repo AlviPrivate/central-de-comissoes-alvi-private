@@ -139,3 +139,24 @@ html[data-theme="dark"] .confirm-modal{background:linear-gradient(180deg,#1c1b18
 
 /* Fechamento mensal na visão geral */
 .monthly-panel{margin-bottom:22px}.monthly-head{align-items:flex-end}.monthly-head small{display:block;color:var(--muted);margin-top:5px}.monthly-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.monthly-actions select{min-width:210px;border:1px solid var(--border);border-radius:12px;padding:11px 36px 11px 13px;background:var(--surface);font:700 13px inherit;color:var(--text)}.month-summary{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:18px 0}.month-summary>div{border:1px solid var(--border);background:var(--surface-soft);border-radius:14px;padding:13px}.month-summary span{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}.month-summary strong{font-size:18px}.month-commissions{display:grid;gap:8px}.month-row{display:grid;grid-template-columns:88px minmax(0,1fr) minmax(150px,.35fr);gap:14px;align-items:center;border-top:1px solid var(--border);padding:12px 4px}.month-row>div:last-child{text-align:right}.month-row strong,.month-row small{display:block}.month-row small{color:var(--muted);margin-top:3px}@media(max-width:1000px){.month-summary{grid-template-columns:repeat(3,1fr)}}@media(max-width:680px){.monthly-head{align-items:flex-start;flex-direction:column}.monthly-actions{width:100%}.monthly-actions select,.monthly-actions .btn{width:100%}.month-summary{grid-template-columns:repeat(2,1fr)}.month-row{grid-template-columns:1fr}.month-row>div:last-child{text-align:left}}
+
+/* Desconto adicional opcional */
+.custom-discount-box{border:1px solid var(--border);border-radius:16px;padding:15px;background:var(--surface-soft)}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.toggle-row strong{display:block;font-size:13px;color:var(--text)}
+.toggle-row small{display:block;margin-top:4px;color:var(--muted);font-size:11px;font-weight:500}
+.switch{position:relative;display:inline-block;width:48px;height:26px;flex:0 0 auto}.switch input{opacity:0;width:0;height:0}.slider{position:absolute;cursor:pointer;inset:0;background:#c8c4bd;border-radius:999px;transition:.25s}.slider:before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;box-shadow:0 2px 7px rgba(0,0,0,.2);transition:.25s}.switch input:checked+.slider{background:var(--gold)}.switch input:checked+.slider:before{transform:translateX(22px)}
+.custom-discount-fields{display:none;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}.custom-discount-fields.show{display:grid}.custom-discount-fields .field{margin:0}
+@media(max-width:700px){.custom-discount-fields{grid-template-columns:1fr}}
+
+/* Visualizacao ampliada - nao afeta o PDF */
+.result-card .result-top h3{font-size:22px}
+.result-card .result-highlight span{font-size:13px}
+.result-card .result-highlight strong{font-size:40px}
+.result-card .result-line span{font-size:14px}
+.result-card .result-line small{font-size:11px;line-height:1.35}
+.result-card .result-line strong{font-size:15px}
+.result-card .result-total{font-size:16px}
+.result-card .conference-box{font-size:13px}
+.result-card .note-result-line{align-items:flex-start;gap:14px}
+.result-card .note-result-line strong{max-width:58%;text-align:right;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.4;color:#f0d39c}

@@ -86,8 +86,8 @@ document.querySelectorAll('[data-view],[data-go]').forEach(el => el.addEventList
 $('menuBtn').onclick = () => $('sidebar').classList.toggle('open');
 $('printBtn').onclick = () => window.print();
 
-function line(label, value, detail = '') {
-  return `<div class="result-line"><div><span>${esc(label)}</span>${detail ? `<small>${esc(detail)}</small>` : ''}</div><strong>${money(value)}</strong></div>`;
+function line(label, value, detail = '', textValue = false) {
+  return `<div class="result-line${textValue ? ' note-result-line' : ''}"><div><span>${esc(label)}</span>${detail ? `<small>${esc(detail)}</small>` : ''}</div><strong>${textValue ? esc(value) : money(value)}</strong></div>`;
 }
 
 function selectedAdminType() {
@@ -102,6 +102,18 @@ function setQuickValue(id, value) {
   const el = $(id);
   if (el) el.value = String(Number(value || 0)).replace('.', ',');
 }
+function syncCustomDiscount(prefix) {
+  const enabled = $(`${prefix}CustomDiscountEnabled`)?.checked || false;
+  $(`${prefix}CustomDiscountFields`)?.classList.toggle('show', enabled);
+}
+function customDiscountData(prefix) {
+  const enabled = $(`${prefix}CustomDiscountEnabled`)?.checked || false;
+  return {
+    enabled,
+    name: enabled ? ($(`${prefix}CustomDiscountName`)?.value.trim() || 'Desconto adicional') : '',
+    value: enabled ? Math.max(0, num($(`${prefix}CustomDiscountValue`)?.value)) : 0
+  };
+}
 function persistSettings(message = '') {
   localStorage.setItem('alviCommissionSettings', JSON.stringify(settings));
   if (message) toast(message);
@@ -110,13 +122,14 @@ function persistSettings(message = '') {
 function calculateRent() {
   const gross = num($('rentGross').value);
   const inspection = num($('rentInspection').value);
+  const customDiscount = customDiscountData('rent');
   const s = settings.rent;
   const adminType = selectedAdminType();
   // A ADM fixa de 5% é descontada sempre, independentemente da opção selecionada.
   const adminRate = quickRate('rentAdminFixedRate', s.adminNewGross);
   const documents = s.documentsFixed;
   const admin = gross * adminRate / 100;
-  const beforeDoor = Math.max(0, gross - inspection - documents - admin);
+  const beforeDoor = Math.max(0, gross - customDiscount.value - inspection - documents - admin);
   const doorRate = quickRate('rentDoorQuickRate', s.doorNet);
   const door = beforeDoor * doorRate / 100;
   const netBeforeNewAdmin = Math.max(0, beforeDoor - door);
@@ -149,7 +162,8 @@ function calculateRent() {
     address: $('rentAddress').value || 'Imóvel sem endereço', number: $('rentNumber').value,
     complement: $('rentComplement').value, propertyReference: $('rentReference').value, owner: $('rentOwner').value,
     tenant: $('rentTenant').value, broker: $('rentBroker').value, gross, inspection, documents,
-    admin, adminRate, adminType, newAdmin, newAdminRate, beforeDoor, door, net, parts, alvi, guarantee: $('rentGuarantee').value,
+    customDiscountEnabled: customDiscount.enabled, customDiscountName: customDiscount.name, customDiscountValue: customDiscount.value,
+    admin, adminRate, adminType, newAdmin, newAdminRate, beforeDoor, doorRate, door, net, parts, alvi, guarantee: $('rentGuarantee').value,
     date: $('rentDate').value, captor: $('rentCaptor').value, manager: $('rentManager').value,
     relocation: $('rentRelocation').value,
     status: $('rentStatus').value, notes: $('rentNotes').value, paymentDate: $('rentPaymentDate').value, paidAmount: num($('rentPaidAmount').value)
@@ -158,12 +172,14 @@ function calculateRent() {
   $('rentNet').textContent = money(net);
   $('rentLines').innerHTML =
     line('VALOR BRUTO DA COMISSÃO', gross) +
+    (customDiscount.enabled && customDiscount.value > 0 ? line(customDiscount.name.toUpperCase(), -customDiscount.value, 'Desconto adicional') : '') +
     line('LAUDO DE VISTORIA', -inspection, 'Valor informado no cálculo') +
     line('Documentos', -documents, 'Valor fixo') +
     line('ADM FIXA', -admin, `${pct(adminRate)} sobre o valor bruto · aplicada sempre`) +
     line('VALOR LÍQUIDO SEM PORTARIA', beforeDoor) +
     line('PORTARIA', -door, `${pct(doorRate)} · sobre o líquido sem portaria`) +
     line('VALOR LÍQUIDO', netBeforeNewAdmin) +
+    ($('rentNotes').value.trim() ? line('OBSERVAÇÃO', $('rentNotes').value.trim(), 'Informação da operação', true) : '') +
     (adminType === 'new' ? line('ADM NOVA', -newAdmin, `${pct(newAdminRate)} sobre o valor líquido`) : '') +
     parts.filter(p => p[1] !== 0).map(p => line(p[0], p[1], `${p[2]}${p[3] ? ` · ${p[3]}` : ''}`)).join('');
   const rentDistributed = parts.reduce((a, p) => a + p[1], 0);
@@ -178,12 +194,13 @@ document.querySelectorAll('input[name="rentAdminType"]').forEach(input => input.
 
 function calculateSale() {
   const grossCommission = num($('saleValue').value);
+  const customDiscount = customDiscountData('sale');
   const taxRate = num($('saleTaxRate').value);
   const tax = grossCommission * taxRate / 100;
   const documents = num($('saleDocuments').value);
   const adminRate = num($('saleAdminRate').value);
   const admin = grossCommission * adminRate / 100;
-  const beforeDoor = Math.max(0, grossCommission - tax - documents - admin);
+  const beforeDoor = Math.max(0, grossCommission - customDiscount.value - tax - documents - admin);
   const doorRate = num($('saleDoorRate').value);
   // A portaria é calculada sobre o valor após Nota Fiscal, Documentos e Administração.
   const door = beforeDoor * doorRate / 100;
@@ -210,7 +227,9 @@ function calculateSale() {
     type: 'venda', createdAt: new Date().toISOString(), address: $('saleAddress').value || 'Imóvel sem endereço',
     number: $('saleNumber').value, complement: $('saleComplement').value, propertyReference: $('salePropertyReference').value,
     owner: $('saleOwner').value, buyer: $('saleBuyer').value, broker: $('saleBroker').value,
-    value: grossCommission, grossCommission, taxRate, tax, documents, adminRate, admin, beforeDoor, doorRate, door, net,
+    value: grossCommission, grossCommission, taxRate, tax, documents,
+    customDiscountEnabled: customDiscount.enabled, customDiscountName: customDiscount.name, customDiscountValue: customDiscount.value,
+    adminRate, admin, beforeDoor, doorRate, door, net,
     total: net, parts, alvi, distributed, totalRate, reference: $('salePropertyReference').value,
     date: $('saleDate').value, captor: $('saleCaptor').value, manager: $('saleManager').value,
     legal: $('saleLegal').value, status: $('saleStatus').value, notes: $('saleNotes').value, paymentDate: $('salePaymentDate').value, paidAmount: num($('salePaidAmount').value)
@@ -218,12 +237,14 @@ function calculateSale() {
   $('saleTotalCommission').textContent = money(net);
   $('saleLines').innerHTML =
     line('VALOR BRUTO DA COMISSÃO', grossCommission) +
+    (customDiscount.enabled && customDiscount.value > 0 ? line(customDiscount.name.toUpperCase(), -customDiscount.value, 'Desconto adicional') : '') +
     line('CUSTO NOTA FISCAL', -tax, pct(taxRate)) +
     line('Docts/DESPACHANTE', -documents, documents ? 'Valor informado' : 'R$ 0,00') +
     line('Adm', -admin, pct(adminRate)) +
     line('VALOR LÍQUIDO S/portaria', beforeDoor) +
     line('PORTARIA', -door, `${pct(doorRate)} · sobre o valor após administração`) +
     line('VALOR LÍQUIDO', net) +
+    ($('saleNotes').value.trim() ? line('OBSERVAÇÃO', $('saleNotes').value.trim(), 'Informação da operação', true) : '') +
     parts.map(p => line(p[0], p[1], `${p[2]}${p[3] ? ` · ${p[3]}` : ''}`)).join('');
   $('saleDistributed').textContent = money(distributed);
   $('saleDistributed').parentElement.classList.toggle('distribution-warning', totalRate > 100.001);
@@ -237,8 +258,10 @@ const rentQuickIds = ['rentAdminFixedRate','rentNewAdminRate','rentDoorQuickRate
 const saleQuickIds = ['saleTaxRate','saleAdminRate','saleDoorRate','saleCaptorRate','saleBrokerRate','saleManagerRate','saleLegalRate'];
 rentQuickIds.forEach(id => $(id)?.addEventListener('input', calculateRent));
 saleQuickIds.forEach(id => $(id)?.addEventListener('input', calculateSale));
-['rentGross','rentInspection','rentCaptor','rentBroker','rentManager'].forEach(id => $(id)?.addEventListener('input', calculateRent));
-['saleValue','saleDocuments','saleCaptor','saleBroker','saleManager','saleLegal'].forEach(id => $(id)?.addEventListener('input', calculateSale));
+['rentGross','rentInspection','rentCaptor','rentBroker','rentManager','rentCustomDiscountName','rentCustomDiscountValue'].forEach(id => $(id)?.addEventListener('input', calculateRent));
+['saleValue','saleDocuments','saleCaptor','saleBroker','saleManager','saleLegal','saleCustomDiscountName','saleCustomDiscountValue'].forEach(id => $(id)?.addEventListener('input', calculateSale));
+$('rentCustomDiscountEnabled')?.addEventListener('change', () => { syncCustomDiscount('rent'); calculateRent(); });
+$('saleCustomDiscountEnabled')?.addEventListener('change', () => { syncCustomDiscount('sale'); calculateSale(); });
 
 $('saveRentQuick').onclick = () => {
   settings.rent.adminNewGross = quickRate('rentAdminFixedRate', defaultSettings.rent.adminNewGross);
@@ -271,7 +294,7 @@ $('restoreSaleQuick').onclick = () => {
 function rentReport(x = lastRent) {
   if (!x) return '';
   const type = x.adminType === 'new' ? 'ADM Nova' : 'Sem Administração';
-  return `📃 EXTRATO DE COMISSÃO — LOCAÇÃO\n\nEndereço: ${addressText(x)}\nRef.: ${referenceText(x) || '-'}\nLocador: ${x.owner || '-'}\nLocatário: ${x.tenant || '-'}\nGarantia: ${x.guarantee || '-'}\nTipo de administração: ${type}\nStatus: ${statusLabels[x.status || 'em_analise']}\nObservação: ${x.notes || '-'}\nData do pagamento: ${x.paymentDate ? new Date(x.paymentDate+'T12:00:00').toLocaleDateString('pt-BR') : '-'}\nValor já pago: ${money(x.paidAmount || 0)}\nValor bruto: ${money(x.gross)}\nValor líquido distribuível: ${money(x.net)}\n\nDISTRIBUIÇÃO\n${x.parts.filter(p => p[1] !== 0).map(p => `${p[0]}${p[3] ? ` (${p[3]})` : ''}: ${money(p[1])}`).join('\n')}\n\nDESCONTOS\nVistoria: ${money(x.inspection)}\nAdministração: ${money(x.admin)}\nPortaria: ${money(x.door)}`;
+  return `📃 EXTRATO DE COMISSÃO — LOCAÇÃO\n\nEndereço: ${addressText(x)}\nRef.: ${referenceText(x) || '-'}\nLocador: ${x.owner || '-'}\nLocatário: ${x.tenant || '-'}\nGarantia: ${x.guarantee || '-'}\nTipo de administração: ${type}\nStatus: ${statusLabels[x.status || 'em_analise']}\nObservação: ${x.notes || '-'}\nData do pagamento: ${x.paymentDate ? new Date(x.paymentDate+'T12:00:00').toLocaleDateString('pt-BR') : '-'}\nValor já pago: ${money(x.paidAmount || 0)}\nValor bruto: ${money(x.gross)}\nValor líquido distribuível: ${money(x.net)}\n\nDISTRIBUIÇÃO\n${x.parts.filter(p => p[1] !== 0).map(p => `${p[0]}${p[3] ? ` (${p[3]})` : ''}: ${money(p[1])}`).join('\n')}\n\nDESCONTOS\n${x.customDiscountEnabled && x.customDiscountValue ? `${x.customDiscountName || 'Desconto adicional'}: ${money(x.customDiscountValue)}\n` : ''}Vistoria: ${money(x.inspection)}\nAdministração (${pct(x.adminRate || 0)}): ${money(x.admin)}\nPortaria (${pct(x.doorRate ?? settings.rent.doorNet ?? 0)}): ${money(x.door)}`;
 }
 
 function saleReport(x = lastSale) {
@@ -288,9 +311,9 @@ Valor bruto da comissão: ${money(x.grossCommission || x.value)}
 Valor líquido distribuível: ${money(x.net)}
 
 DESCONTOS
-Custo nota fiscal: ${money(x.tax)}
+${x.customDiscountEnabled && x.customDiscountValue ? `${x.customDiscountName || 'Desconto adicional'}: ${money(x.customDiscountValue)}\n` : ''}Custo nota fiscal: ${money(x.tax)}
 Documentos / despachante: ${money(x.documents)}
-Administração: ${money(x.admin)}
+Administração (${pct(x.adminRate || 0)}): ${money(x.admin)}
 Portaria (${pct(x.doorRate || 0)}): ${money(x.door)}
 
 DISTRIBUIÇÃO
@@ -336,17 +359,20 @@ function generatePdf(item) {
     <div><span>Status</span><strong>${esc(currentStatus)}</strong></div>
     <div><span>Valor bruto da comissão</span><strong>${money(item.grossCommission || item.value || item.total)}</strong></div>
     <div><span>Valor líquido</span><strong>${money(item.net || item.total)}</strong></div>`;
-  const deductions = isRent ? `<section><h2>Descontos</h2><table><tbody><tr><td>Laudo de vistoria</td><td>${money(item.inspection)}</td></tr><tr><td>Administração</td><td>${money(item.admin)}</td></tr><tr><td>Valor líquido sem portaria</td><td>${money(item.beforeDoor ?? (item.gross - item.inspection - item.documents - item.admin))}</td></tr><tr><td>Portaria</td><td>${money(item.door)}</td></tr></tbody></table></section>` : `<section><h2>Descontos</h2><table><tbody><tr><td>Custo nota fiscal</td><td>${pct(item.taxRate || 0)}</td><td>${money(item.tax || 0)}</td></tr><tr><td>Documentos / despachante</td><td>Valor</td><td>${money(item.documents || 0)}</td></tr><tr><td>Administração</td><td>${pct(item.adminRate || 0)}</td><td>${money(item.admin || 0)}</td></tr><tr><td>Portaria</td><td>${pct(item.doorRate || 0)}</td><td>${money(item.door || 0)}</td></tr></tbody></table></section>`;
+  const customDiscountRow = item.customDiscountEnabled && Number(item.customDiscountValue || 0) > 0 ? `<tr><td>${esc(item.customDiscountName || 'Desconto adicional')}</td><td>Valor</td><td>${money(item.customDiscountValue)}</td></tr>` : '';
+  const deductions = isRent ? `<section><h2>Descontos</h2><table><tbody>${customDiscountRow}<tr><td>Laudo de vistoria</td><td>Valor</td><td>${money(item.inspection)}</td></tr><tr><td>Administração</td><td>${pct(item.adminRate || 0)}</td><td>${money(item.admin)}</td></tr><tr><td>Valor líquido sem portaria</td><td>-</td><td>${money(item.beforeDoor ?? (item.gross - (item.customDiscountValue || 0) - item.inspection - item.documents - item.admin))}</td></tr><tr><td>Portaria</td><td>${pct(item.doorRate ?? settings.rent.doorNet ?? 0)}</td><td>${money(item.door)}</td></tr></tbody></table></section>` : `<section><h2>Descontos</h2><table><tbody>${customDiscountRow}<tr><td>Custo nota fiscal</td><td>${pct(item.taxRate || 0)}</td><td>${money(item.tax || 0)}</td></tr><tr><td>Documentos / despachante</td><td>Valor</td><td>${money(item.documents || 0)}</td></tr><tr><td>Administração</td><td>${pct(item.adminRate || 0)}</td><td>${money(item.admin || 0)}</td></tr><tr><td>Portaria</td><td>${pct(item.doorRate || 0)}</td><td>${money(item.door || 0)}</td></tr></tbody></table></section>`;
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>${title}</title><style>
-    @page{size:A4 landscape;margin:7mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#211e1a;margin:0;background:#fff}.head{border-bottom:3px solid #c99b52;padding-bottom:6px;margin-bottom:7px;display:flex;justify-content:space-between;align-items:flex-end}.brand{font-weight:800;letter-spacing:2px}.brand small{display:block;font-weight:400;letter-spacing:0;color:#777;margin-top:2px}.date{font-size:14px;color:#777}h1{font-family:Georgia,serif;font-size:32px;margin:0 0 2px}h2{font-size:16px;text-transform:uppercase;letter-spacing:1.3px;margin:7px 0 4px;color:#9a6c27}.address{font-size:16px;color:#555;margin-bottom:5px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px 16px;background:#f7f3ec;padding:7px 12px;border-radius:9px}.grid div{border-bottom:1px solid #e4ddd3;padding:3px 0}.grid span{display:block;font-size:11px;text-transform:uppercase;color:#888;margin-bottom:1px}.grid strong{font-size:15px}.report-columns{display:grid;grid-template-columns:.88fr 1.12fr;gap:15px;align-items:start}section{break-inside:avoid}table{width:100%;border-collapse:collapse}th,td{padding:6px 7px;border-bottom:1px solid #e7e1d8;text-align:left;font-size:14px}th{text-transform:uppercase;font-size:11px;color:#777}td:last-child,th:last-child{text-align:right}td small{display:block;color:#888;margin-top:1px}.total{margin-top:6px;background:#1b1814;color:#fff;padding:9px 12px;border-radius:8px;display:flex;justify-content:space-between;font-size:16px}.total strong{color:#d9ad65}.boss-notes{margin-top:5px;break-inside:auto;page-break-inside:auto}.boss-notes h2{margin:4px 0 2px}.note-line{height:18px;border-bottom:1px solid #777;margin-bottom:3px}.footer{margin-top:5px;padding-top:4px;border-top:1px solid #ddd;font-size:11px;color:#888;text-align:center}.no-print{margin:10px auto;display:block;padding:9px 16px;background:#c99b52;border:0;border-radius:8px;font-weight:bold;cursor:pointer}@media print{.no-print{display:none}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.boss-notes{break-before:avoid-page;page-break-before:avoid}}
-  </style></head><body><button class="no-print" onclick="window.print()">Salvar como PDF / Imprimir</button><div class="head"><div><div class="brand">ALVI PRIVATE<small>Inteligência Imobiliária</small></div></div><div class="date">Emitido em ${new Date().toLocaleString('pt-BR')}</div></div><h1>${title}</h1><div class="address">${esc(addressText(item))}${referenceText(item) ? `<br>Ref.: ${esc(referenceText(item))}` : ''}</div><section><h2>Dados da operação</h2><div class="grid">${details}</div></section><div class="report-columns"><div>${deductions}</div><section><h2>Distribuição da comissão</h2><table><thead><tr><th>Participante</th><th>Regra</th><th>Valor</th></tr></thead><tbody>${printableRows(item.parts, isRent ? item.net : item.total)}</tbody></table></section></div><div class="total"><span>${isRent ? 'Valor líquido distribuível' : 'Comissão total'}</span><strong>${money(isRent ? item.net : item.total)}</strong></div><section class="boss-notes"><h2>Observações</h2><div class="note-line"></div><div class="note-line"></div></section><div class="footer">Documento gerado pela Central de Comissões Alvi Private.</div><script>setTimeout(()=>window.print(),400)<\/script></body></html>`;
+    @page{size:A4 landscape;margin:7mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#211e1a;margin:0;background:#fff}.head{border-bottom:3px solid #c99b52;padding-bottom:6px;margin-bottom:7px;display:flex;justify-content:space-between;align-items:flex-end}.brand{font-weight:800;letter-spacing:2px}.brand small{display:block;font-weight:400;letter-spacing:0;color:#777;margin-top:2px}.date{font-size:14px;color:#777}h1{font-family:Georgia,serif;font-size:32px;margin:0 0 2px}h2{font-size:16px;text-transform:uppercase;letter-spacing:1.3px;margin:7px 0 4px;color:#9a6c27}.address{font-size:16px;color:#555;margin-bottom:5px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px 16px;background:#f7f3ec;padding:7px 12px;border-radius:9px}.grid div{border-bottom:1px solid #e4ddd3;padding:3px 0}.grid span{display:block;font-size:11px;text-transform:uppercase;color:#888;margin-bottom:1px}.grid strong{font-size:15px}.report-columns{display:grid;grid-template-columns:.88fr 1.12fr;gap:15px;align-items:start}section{break-inside:avoid}table{width:100%;border-collapse:collapse}th,td{padding:6px 7px;border-bottom:1px solid #e7e1d8;text-align:left;font-size:14px}th{text-transform:uppercase;font-size:11px;color:#777}td:last-child,th:last-child{text-align:right}td small{display:block;color:#888;margin-top:1px}.total{margin-top:6px;background:#1b1814;color:#fff;padding:9px 12px;border-radius:8px;display:flex;justify-content:space-between;font-size:16px}.total strong{color:#d9ad65}.boss-notes{margin-top:5px;break-inside:auto;page-break-inside:auto}.boss-notes h2{margin:4px 0 2px}.note-line{height:18px;border-bottom:1px solid #777;margin-bottom:3px}.notes-text{min-height:38px;border:1px solid #e0d8cb;border-radius:7px;background:#faf8f4;padding:8px 10px;font-size:13px;line-height:1.45;white-space:normal}.footer{margin-top:5px;padding-top:4px;border-top:1px solid #ddd;font-size:11px;color:#888;text-align:center}.no-print{margin:10px auto;display:block;padding:9px 16px;background:#c99b52;border:0;border-radius:8px;font-weight:bold;cursor:pointer}@media print{.no-print{display:none}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.boss-notes{break-before:avoid-page;page-break-before:avoid}}
+  </style></head><body><button class="no-print" onclick="window.print()">Salvar como PDF / Imprimir</button><div class="head"><div><div class="brand">ALVI PRIVATE<small>Inteligência Imobiliária</small></div></div><div class="date">Emitido em ${new Date().toLocaleString('pt-BR')}</div></div><h1>${title}</h1><div class="address">${esc(addressText(item))}${referenceText(item) ? `<br>Ref.: ${esc(referenceText(item))}` : ''}</div><section><h2>Dados da operação</h2><div class="grid">${details}</div></section><div class="report-columns"><div>${deductions}</div><section><h2>Distribuição da comissão</h2><table><thead><tr><th>Participante</th><th>Regra</th><th>Valor</th></tr></thead><tbody>${printableRows(item.parts, isRent ? item.net : item.total)}</tbody></table></section></div><div class="total"><span>${isRent ? 'Valor líquido distribuível' : 'Comissão total'}</span><strong>${money(isRent ? item.net : item.total)}</strong></div><section class="boss-notes"><h2>Observações</h2>${item.notes ? `<div class="notes-text">${esc(item.notes).replace(/\n/g, '<br>')}</div>` : ''}<div class="note-line"></div><div class="note-line"></div><div class="note-line"></div></section><div class="footer">Documento gerado pela Central de Comissões Alvi Private.</div><script>setTimeout(()=>window.print(),400)<\/script></body></html>`;
   const win = window.open('', '_blank');
   if (!win) return toast('Permita pop-ups para gerar o PDF.');
   win.document.open(); win.document.write(html); win.document.close();
 }
 
-$('pdfRent').onclick = () => generatePdf(lastRent);
-$('pdfSale').onclick = () => generatePdf(lastSale);
+$('pdfRent').onclick = () => generatePdf(calculateRent());
+$('pdfSale').onclick = () => generatePdf(calculateSale());
+$('rentNotes').addEventListener('input', calculateRent);
+$('saleNotes').addEventListener('input', calculateSale);
 
 function save(item) {
   if (!item) return toast('Faça o cálculo primeiro.');
@@ -484,9 +510,9 @@ window.editHistory = id => {
   const x = history.find(i => i.id === id); if (!x) return;
   editingId = id;
   if (x.type === 'locacao') {
-    fillField('rentAddress',x.address); fillField('rentNumber',x.number); fillField('rentComplement',x.complement); fillField('rentReference',referenceText(x)); fillField('rentOwner',x.owner); fillField('rentTenant',x.tenant); fillField('rentGross',String(x.gross||'').replace('.',',')); fillField('rentInspection',String(x.inspection||'').replace('.',',')); fillField('rentGuarantee',x.guarantee); fillField('rentDate',x.date); fillField('rentStatus',x.status||'em_analise'); fillField('rentNotes',x.notes); fillField('rentPaymentDate',x.paymentDate); fillField('rentPaidAmount',String(x.paidAmount||0).replace('.',',')); fillField('rentCaptor',x.captor); fillField('rentBroker',x.broker); fillField('rentManager',x.manager); fillField('rentRelocation',x.relocation); const savedAdminType = x.adminType === 'alvi' ? 'none' : (x.adminType || 'none'); const radio=document.querySelector(`input[name="rentAdminType"][value="${savedAdminType}"]`); if(radio) radio.checked=true; calculateRent(); $('saveRent').textContent='Atualizar registro'; navigate('locacao');
+    fillField('rentAddress',x.address); fillField('rentNumber',x.number); fillField('rentComplement',x.complement); fillField('rentReference',referenceText(x)); fillField('rentOwner',x.owner); fillField('rentTenant',x.tenant); fillField('rentGross',String(x.gross||'').replace('.',',')); fillField('rentInspection',String(x.inspection||'').replace('.',',')); fillField('rentGuarantee',x.guarantee); fillField('rentDate',x.date); fillField('rentStatus',x.status||'em_analise'); fillField('rentNotes',x.notes); fillField('rentPaymentDate',x.paymentDate); fillField('rentPaidAmount',String(x.paidAmount||0).replace('.',',')); if($('rentCustomDiscountEnabled')) $('rentCustomDiscountEnabled').checked=!!x.customDiscountEnabled; fillField('rentCustomDiscountName',x.customDiscountName); fillField('rentCustomDiscountValue',String(x.customDiscountValue||0).replace('.',',')); syncCustomDiscount('rent'); fillField('rentCaptor',x.captor); fillField('rentBroker',x.broker); fillField('rentManager',x.manager); fillField('rentRelocation',x.relocation); const savedAdminType = x.adminType === 'alvi' ? 'none' : (x.adminType || 'none'); const radio=document.querySelector(`input[name="rentAdminType"][value="${savedAdminType}"]`); if(radio) radio.checked=true; calculateRent(); $('saveRent').textContent='Atualizar registro'; navigate('locacao');
   } else {
-    fillField('saleAddress',x.address); fillField('saleNumber',x.number); fillField('saleComplement',x.complement); fillField('salePropertyReference',referenceText(x)); fillField('saleOwner',x.owner); fillField('saleBuyer',x.buyer); fillField('saleValue',String(x.grossCommission||x.value||'').replace('.',',')); fillField('saleDate',x.date); fillField('saleStatus',x.status||'em_analise'); fillField('saleNotes',x.notes); fillField('salePaymentDate',x.paymentDate); fillField('salePaidAmount',String(x.paidAmount||0).replace('.',',')); fillField('saleTaxRate',String(x.taxRate||0).replace('.',',')); fillField('saleDocuments',String(x.documents||0).replace('.',',')); fillField('saleAdminRate',String(x.adminRate||0).replace('.',',')); fillField('saleDoorRate',String(x.doorRate||0).replace('.',',')); fillField('saleCaptor',x.captor); fillField('saleBroker',x.broker); fillField('saleManager',x.manager); fillField('saleLegal',x.legal); calculateSale(); $('saveSale').textContent='Atualizar registro'; navigate('venda');
+    fillField('saleAddress',x.address); fillField('saleNumber',x.number); fillField('saleComplement',x.complement); fillField('salePropertyReference',referenceText(x)); fillField('saleOwner',x.owner); fillField('saleBuyer',x.buyer); fillField('saleValue',String(x.grossCommission||x.value||'').replace('.',',')); fillField('saleDate',x.date); fillField('saleStatus',x.status||'em_analise'); fillField('saleNotes',x.notes); fillField('salePaymentDate',x.paymentDate); fillField('salePaidAmount',String(x.paidAmount||0).replace('.',',')); if($('saleCustomDiscountEnabled')) $('saleCustomDiscountEnabled').checked=!!x.customDiscountEnabled; fillField('saleCustomDiscountName',x.customDiscountName); fillField('saleCustomDiscountValue',String(x.customDiscountValue||0).replace('.',',')); syncCustomDiscount('sale'); fillField('saleTaxRate',String(x.taxRate||0).replace('.',',')); fillField('saleDocuments',String(x.documents||0).replace('.',',')); fillField('saleAdminRate',String(x.adminRate||0).replace('.',',')); fillField('saleDoorRate',String(x.doorRate||0).replace('.',',')); fillField('saleCaptor',x.captor); fillField('saleBroker',x.broker); fillField('saleManager',x.manager); fillField('saleLegal',x.legal); calculateSale(); $('saveSale').textContent='Atualizar registro'; navigate('venda');
   }
   toast('Registro carregado para edição.');
 };
@@ -557,8 +583,8 @@ function resetForm(formId) {
   $(formId).reset();
   setInitialValues();
 }
-$('resetRent').onclick = () => { resetForm('rentForm'); editingId=null; $('saveRent').textContent='Salvar cálculo'; lastRent = null; $('rentNet').textContent = money(0); $('rentLines').innerHTML = ''; $('rentDistributed').textContent = money(0); $('rentConference').className='conference-box'; $('rentConference').innerHTML='<span>Conferência</span><strong>Aguardando cálculo</strong>'; };
-$('resetSale').onclick = () => { resetForm('saleForm'); editingId=null; $('saveSale').textContent='Salvar cálculo'; lastSale = null; $('saleTotalCommission').textContent = money(0); $('saleLines').innerHTML = ''; $('saleDistributed').textContent = money(0); $('saleConference').className='conference-box'; $('saleConference').innerHTML='<span>Conferência</span><strong>Aguardando cálculo</strong>'; };
+$('resetRent').onclick = () => { resetForm('rentForm'); syncCustomDiscount('rent'); editingId=null; $('saveRent').textContent='Salvar cálculo'; lastRent = null; $('rentNet').textContent = money(0); $('rentLines').innerHTML = ''; $('rentDistributed').textContent = money(0); $('rentConference').className='conference-box'; $('rentConference').innerHTML='<span>Conferência</span><strong>Aguardando cálculo</strong>'; };
+$('resetSale').onclick = () => { resetForm('saleForm'); syncCustomDiscount('sale'); editingId=null; $('saveSale').textContent='Salvar cálculo'; lastSale = null; $('saleTotalCommission').textContent = money(0); $('saleLines').innerHTML = ''; $('saleDistributed').textContent = money(0); $('saleConference').className='conference-box'; $('saleConference').innerHTML='<span>Conferência</span><strong>Aguardando cálculo</strong>'; };
 
 
 const savedTheme = localStorage.getItem('alviTheme') || 'light';
@@ -594,6 +620,8 @@ function setInitialValues() {
 }
 
 setInitialValues();
+syncCustomDiscount('rent');
+syncCustomDiscount('sale');
 calculateRent();
 calculateSale();
 renderDashboard();
