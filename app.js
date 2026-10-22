@@ -133,10 +133,10 @@ function calculateRent() {
   const doorRate = quickRate('rentDoorQuickRate', s.doorNet);
   const door = beforeDoor * doorRate / 100;
   const netBeforeNewAdmin = Math.max(0, beforeDoor - door);
-  // A ADM Nova é um desconto adicional, e não um participante da distribuição.
-  const newAdminRate = adminType === 'new' ? quickRate('rentNewAdminRate', s.newAdmin) : 0;
-  const newAdmin = netBeforeNewAdmin * newAdminRate / 100;
-  const net = Math.max(0, netBeforeNewAdmin - newAdmin);
+  // Tipo de administração é apenas informativo e não altera os cálculos.
+  const newAdminRate = 0;
+  const newAdmin = 0;
+  const net = netBeforeNewAdmin;
   const relocationName = $('rentRelocation').value.trim();
   const captorRate = quickRate('rentCaptorRate', s.captor);
   const brokerRate = quickRate('rentBrokerRate', s.broker);
@@ -180,7 +180,7 @@ function calculateRent() {
     line('PORTARIA', -door, `${pct(doorRate)} · sobre o líquido sem portaria`) +
     line('VALOR LÍQUIDO', netBeforeNewAdmin) +
     ($('rentNotes').value.trim() ? line('OBSERVAÇÃO', $('rentNotes').value.trim(), 'Informação da operação', true) : '') +
-    (adminType === 'new' ? line('ADM NOVA', -newAdmin, `${pct(newAdminRate)} sobre o valor líquido`) : '') +
+    line('TIPO DE ADMINISTRAÇÃO', adminType === 'new' ? 'ADM Nova' : 'Sem Administração', 'Informativo · não altera o cálculo', true) +
     parts.filter(p => p[1] !== 0).map(p => line(p[0], p[1], `${p[2]}${p[3] ? ` · ${p[3]}` : ''}`)).join('');
   const rentDistributed = parts.reduce((a, p) => a + p[1], 0);
   $('rentDistributed').textContent = money(rentDistributed);
@@ -533,7 +533,6 @@ const rentDefs = [
   ['doorNet','Portaria','Sobre o líquido antes da portaria','%'],
   ['captor','Captador do imóvel','Distribuição do líquido','%'],
   ['relocation','Responsável pela relocação','Calculado somente quando houver um nome informado','%'],
-  ['newAdmin','ADM Nova','Desconto adicional sobre o líquido após a portaria, aplicado somente quando ADM Nova estiver selecionada','%'],
   ['broker','Corretor','Distribuição do líquido','%'],
   ['manager','Gerente','Distribuição do líquido','%'],
   ['extra1','Adicional 1','Distribuição opcional','%'],
